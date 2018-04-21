@@ -15,4 +15,7 @@ files.
 encrypt_script.bash and the encrypted scripts don't put passphrases into the
 argv (so users running ps(1) can't inspect it).
 
+encrypt_script.bash uses openssl(1) with a random salt by default, thus the
+output file will be different even after rerunning for the same input.
+
 __END__
