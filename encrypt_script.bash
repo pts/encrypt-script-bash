@@ -73,8 +73,8 @@ echo "'${PE//
 / }' \\"
 done
 echo "; do
-  D=\"\$(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 <<<\"\${EP// /
-}\" 9>&0 <<<\"\$PP\" 8>&0 <&9 2>/dev/null)\"
+  read D < <(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 <<<\"\${EP// /
+}\" 9>&0 <<<\"\$PP\" 8>&0 <&9 2>/dev/null)
   test \"\$?\" = 0 && D1=\"\${D%% *}\" && test \"\$D1\" = \"\${D#* }\" && test \"\$D\" = \"\$D1 \$D1\" && D=\"\$D1\" && break
   D=
 done
