@@ -31,10 +31,10 @@ fi
 test "$1" = -- && shift
 test $# = 0 && die 'missing <passphrase-file>'
 
-D="$(command openssl enc -a -d -aes-256-cbc -k a -nosalt <<<'UIyFNFaeLbrA3fIVZ/0qcw==' 2>/dev/null)"
-test "$D" = hello || die 'openssl enc -a -d -aes-256-cbc is broken'
+D="$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==' 2>/dev/null)"
+test "$D" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
 
-D="$(openssl rand -base64 57)"  # 76 base64 bytes.
+D="$(command openssl rand -base64 57)"  # 76 base64 bytes.
 test "$?" = 0 || die 'openssl rand failed'
 test "$D" || die 'openssl rand returned empty output'
 D="${D//
@@ -54,8 +54,8 @@ if ! type -p openssl 2>/dev/null >&2; then
   command sudo apt-get install openssl
   type -p openssl 2>/dev/null >&2 || die 'openssl: command not found'
 fi
-D=\"\$(command openssl enc -a -d -aes-256-cbc -k a -nosalt <<<'UIyFNFaeLbrA3fIVZ/0qcw==' 2>/dev/null)\"
-test \"\$D\" = hello || die 'openssl enc -a -d -aes-256-cbc is broken'
+D=\"\$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==' 2>/dev/null)\"
+test \"\$D\" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
 echo -n \"enter $PTYPE passphrase: \" >&2
 read -s PP </dev/tty
 echo >&2
@@ -66,22 +66,22 @@ for PF in "$@"; do
 PP=
 read PP <"$PF"
 test "$PP" || die "empty or missing passphrase in file: $PF"
-PE="$(command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 <<<"$PP" 8>&0 <<<"$D $D")"
+PE="$(command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<"$PP" 8>&0 <<<"$D $D")"
 test "$?" = 0 || die 'openssl enc on passphrase failed'
 test "$PE" || die 'openssl enc on passphrase returned empty output'
 echo "'${PE//
 / }' \\"
 done
 echo "; do
-  read D < <(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 <<<\"\${EP// /
+  read D < <(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<\"\${EP// /
 }\" 9>&0 <<<\"\$PP\" 8>&0 <&9 2>/dev/null)
   test \"\$?\" = 0 && D1=\"\${D%% *}\" && test \"\$D1\" = \"\${D#* }\" && test \"\$D\" = \"\$D1 \$D1\" && D=\"\$D1\" && break
   D=
 done
 test \"\$D\" || die 'incorrect $PTYPE passphrase'
-C=\"unset C;\$(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 <<<\"\$D\" 8>&0 2>/dev/null <<'HEREND'"
+C=\"unset C;\$(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<\"\$D\" 8>&0 2>/dev/null <<'HEREND'"
 (read LINE; test "${LINE#\#!}" = "$LINE" || LINE=; echo "$LINE"; command cat) |
-    command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 9>&0 <<<"$D" 8>&0 <&9 || die "openssl enc on payload failed"
+    command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 -md sha1 9>&0 <<<"$D" 8>&0 <&9 || die "openssl enc on payload failed"
 echo "HEREND
 )\"
 test \"\$?\" = 0 || die 'decrypt failed'

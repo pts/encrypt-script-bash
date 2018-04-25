@@ -25,8 +25,8 @@ Dash. Bash versions tested and found working: 4.1.5 (2009) ... 4.4.19
 
 openssl version compatibility:
 
-* OpenSSL 0.9.8k 25 Mar 2009: OK
-* OpenSSL 1.0.2o  27 Mar 2018: OK
-* OpenSSL 1.1.0g  2 Nov 2017: bad, even for hello
+* OpenSSL 0.9.8k 25 Mar 2009: OK (default is -md md5)
+* OpenSSL 1.0.2o  27 Mar 2018: OK (default is -md md5)
+* OpenSSL 1.1.0g  2 Nov 2017: OK (default is not -md sha256)
 
 __END__
