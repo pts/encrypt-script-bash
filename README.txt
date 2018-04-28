@@ -24,6 +24,20 @@ supported by Busybox sh or Dash. Bash versions tested and found working:
 4.1.5 (2009) ... 4.4.19 (2018). The encrypted scripts also work with Zsh,
 tested and found working: 4.3.10 (2009) ... 5.4.2 (2018).
 
+How secure are scripts encrypted by encrypt_script.sh?
+
+* good: The used aes-256-cbc crypto is secure.
+* good: The passphrase doesn't show up in argv or environment variables, so
+  other processes running in the same system can't easily inspect it with
+  /proc (but root can create a memory dump to inspect it).
+* bad: The key derivation scheme is weak, a dictionary attack is much faster
+  than on `gpg --symmetric'.
+* bad: There is no integrity protection, so the middle of the encrypted
+  script can be modified without knowing the passphrase, and this won't be
+  detected at extraction time. (By modifying 1 bytes, 20 or more bytes in
+  the decrypted stream may get ruined.) `gpg --symmetric --force-mdc` does
+  provide integrity protection.
+
 openssl version compatibility:
 
 * OpenSSL 0.9.8k 25 Mar 2009: OK (default is -md md5)
