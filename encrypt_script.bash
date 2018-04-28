@@ -53,7 +53,9 @@ if ! type -p openssl 2>/dev/null >&2; then
   echo 'info: openssl not found for $PTYPE, installing' >&2
   command sudo apt-get install openssl
   type -p openssl 2>/dev/null >&2 || die 'openssl: command not found'
-fi
+fi"
+# unset is used to unexport, i.e. remove from the environment.
+echo "unset PP EP D D1 C
 D=\"\$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==' 2>/dev/null)\"
 test \"\$D\" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
 echo -n \"enter $PTYPE passphrase: \" >&2
