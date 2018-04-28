@@ -73,11 +73,17 @@ else
   test "$D" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
 fi
 
+if test "$BACKEND" = gpg; then
+D="$(command gpg --armor --gen-random 1 57)"  # 76 base64 bytes.
+test "$?" = 0 || die 'gpg --armor --gen-random'
+test "$D" || die 'gpg --armor --gen-random returned empty output'
+else
 D="$(command openssl rand -base64 57)"  # 76 base64 bytes.
 test "$?" = 0 || die 'openssl rand failed'
 test "$D" || die 'openssl rand returned empty output'
 D="${D//
 /}"
+fi
 
 exec >"$OUT" || die 'error opening <input-bash-script>'
 
