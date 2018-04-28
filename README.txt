@@ -38,6 +38,10 @@ How secure are scripts encrypted by encrypt_script.sh?
   the decrypted stream may get ruined.) `gpg --symmetric --force-mdc` does
   provide integrity protection.
 
+Encrypted scripts are not binary-safe. They are safe if the script to be
+encrypted doesn't contain the 0 byte (ASCII NUL). Bash ignores this byte in
+some context such as here-documents (<<'END'). Zsh doesn't ignore it.
+
 openssl version compatibility:
 
 * OpenSSL 0.9.8k 25 Mar 2009: OK (default is -md md5)
