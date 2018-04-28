@@ -39,6 +39,12 @@ supported by Busybox sh or Dash. Bash versions tested and found working:
 4.1.5 (2009) ... 4.4.19 (2018). The encrypted scripts also work with Zsh,
 tested and found working: 4.3.10 (2009) ... 5.4.2 (2018).
 
+Standard files (stdin, stdout and stderr), environment (except for a few
+variables used for encryption) and arguments (argv, e.g. $1) are passed to
+the script after decryption. The script filename and line number are not
+passed around properly, the file name will be `eval', and line the line
+number will have about 48 added to it.
+
 How secure are scripts encrypted by encrypt_script.sh?
 
 * good: The used aes-256-cbc crypto is secure.
