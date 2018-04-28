@@ -3,8 +3,8 @@
 # encrypt_script.bash: passphrase-based encryption of Bash shell scripts
 # by pts@fazekas.hu at Sat Apr 21 17:02:15 CEST 2018
 #
-# Tested and works on bash 4.1.5. Needs /dev/fd/8 (Linux has it.)
-# TODO(pts): Make it work on macOS. Does it have /dev/fd/... and /dev/tty ?
+# Tested and works on Bash and Zsh. Needs /dev/tty (Linux has it.)
+# TODO(pts): Make it work on macOS. Does it have /dev/tty?
 #
 
 function die() {
@@ -12,7 +12,7 @@ function die() {
   exit 1
 }
 
-if test "$1" == --help || test $# = 0; then
+if test "$1" = --help || test $# = 0; then
   echo "encrypt_script.bash: passphrase-based encryption of Bash shell scripts
 This is free software, GNU GPL >=2.0. There is NO WARRANTY. Use at your risk.
 Usage: $0 --out=<output-bash-script> [--ptype=<password-type>] [--] <passphrase-file> [...] < <input-bash-script>" >&2
@@ -66,22 +66,22 @@ for PF in "$@"; do
 PP=
 read PP <"$PF"
 test "$PP" || die "empty or missing passphrase in file: $PF"
-PE="$(command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<"$PP" 8>&0 <<<"$D $D")"
+PE="$(command openssl enc -a -aes-256-cbc -kfile <(echo -n "$PP") -md sha1 <<<"$D $D")"
 test "$?" = 0 || die 'openssl enc on passphrase failed'
 test "$PE" || die 'openssl enc on passphrase returned empty output'
 echo "'${PE//
 / }' \\"
 done
 echo "; do
-  read D < <(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<\"\${EP// /
-}\" 9>&0 <<<\"\$PP\" 8>&0 <&9 2>/dev/null)
+  read D < <(command openssl enc -a -d -aes-256-cbc -kfile <(echo -n \"\$PP\") -md sha1 <<<\"\${EP// /
+}\" 2>/dev/null)
   test \"\$?\" = 0 && D1=\"\${D%% *}\" && test \"\$D1\" = \"\${D#* }\" && test \"\$D\" = \"\$D1 \$D1\" && D=\"\$D1\" && break
   D=
 done
 test \"\$D\" || die 'incorrect $PTYPE passphrase'
-C=\"unset C;\$(command openssl enc -a -d -aes-256-cbc -kfile /dev/fd/8 -md sha1 <<<\"\$D\" 8>&0 2>/dev/null <<'HEREND'"
+C=\"unset C;\$(command openssl enc -a -d -aes-256-cbc -kfile <(echo -n \"\$D\") -md sha1 2>/dev/null <<'HEREND'"
 (read LINE; test "${LINE#\#!}" = "$LINE" || LINE=; echo "$LINE"; command cat) |
-    command openssl enc -a -aes-256-cbc -kfile /dev/fd/8 -md sha1 9>&0 <<<"$D" 8>&0 <&9 || die "openssl enc on payload failed"
+    command openssl enc -a -aes-256-cbc -kfile <(echo -n "$D") -md sha1 || die "openssl enc on payload failed"
 echo "HEREND
 )\"
 test \"\$?\" = 0 || die 'decrypt failed'
