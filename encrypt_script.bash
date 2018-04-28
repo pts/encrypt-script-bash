@@ -44,7 +44,7 @@ while test $# != 0; do
   elif test "${1#--backend=}" != "$1"; then
     BACKEND="${1#*=}"
     test "$BACKEND" = gpg || test "$BACKEND" = openssl || die "unknown --backend=$BACKEND"
-  elif test "${1#--s2k-count=}" != "$1"; then
+  elif test "${1#--s2k-count=}" != "$1"; then  # Makes a difference only with --backend=gpg .
     S2K_COUNT_FLAG="--s2k-count=${1#*=}"
   elif test "$1" = --; then
     shift
