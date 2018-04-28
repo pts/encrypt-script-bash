@@ -15,24 +15,56 @@ function die() {
 if test "$1" = --help || test $# = 0; then
   echo "encrypt_script.bash: passphrase-based encryption of Bash shell scripts
 This is free software, GNU GPL >=2.0. There is NO WARRANTY. Use at your risk.
-Usage: $0 --out=<output-bash-script> [--ptype=<password-type>] [--] <passphrase-file> [...] < <input-bash-script>" >&2
+Usage: $0 [<flag> ...] <passphrase-file> [...] < <input-bash-script>
+<passphrase-file> The first line contains the passphrase.
+Flags:
+--in=<input-bash-script>
+--out=<encrypted-output-bash-script>
+--backend={gpg|openssl} gpg is the default. openssl is not secure.
+--ptype=<password-type> Displayed when prompting for passphrase." >&2
   exit 0
 fi
 
 OUT=
-test "${1#--out=}" = "$1" && die 'missing --out=...'
-OUT="${1#*=}"
-shift
+BACKEND=openssl
 PTYPE=bash-script
-if test "${1#--ptype=*}" != "$1"; then
-  PTYPE="${1#*=}"
+while test $# != 0; do
+  if test "${1#--out=}" != "$1"; then
+    OUT="${1#*=}"
+  elif test "${1#--in=}" != "$1"; then
+    exec <"${1#*=}" || die "cannot open input file: ${1#*=}"
+  elif test "${1#--ptype=}" != "$1"; then
+    PTYPE="${1#*=}"
+  elif test "${1#--backend=}" != "$1"; then
+    BACKEND="${1#*=}"
+    test "$BACKEND" = gpg || test "$BACKEND" = openssl || die "unknown --backend=$BACKEND"
+  elif test "$1" = --; then
+    shift
+    break
+  elif test "$1" = -; then
+    break
+  elif test "${1#-}" = "$1"; then
+    break
+  else
+    die "unknown flag: $1"
+  fi
   shift
-fi
-test "$1" = -- && shift
+done
+test "$OUT" || die 'missing --out=...'
 test $# = 0 && die 'missing <passphrase-file>'
 
-D="$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==' 2>/dev/null)"
-test "$D" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
+if test "$BACKEND" = gpg; then
+  D=$(gpg -d -q --batch --passphrase a <<<'-----BEGIN PGP MESSAGE-----
+
+jA0EAwMC+Gv+j4hMGX5g0joB7u8WLHTg0eLf3Rl1IvUkIXvsYGIDLvdN3M6m0sBgvXLFHby5D+CjaTtfW7t8OdQT+ljyJgQSVjyB=6nE9
+-----END PGP MESSAGE-----')
+  test "$D" = unencumbered || die 'gpg -d -q --batch --passphrase a is broken'
+  die '--backend=gpg not supported yet'
+  exit 42
+else
+  D="$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==')"
+  test "$D" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
+fi
 
 D="$(command openssl rand -base64 57)"  # 76 base64 bytes.
 test "$?" = 0 || die 'openssl rand failed'
