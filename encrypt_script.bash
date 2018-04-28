@@ -21,13 +21,15 @@ Flags:
 --in=<input-bash-script>
 --out=<encrypted-output-bash-script>
 --backend={gpg|openssl} gpg is the default. openssl is not secure.
---ptype=<password-type> Displayed when prompting for passphrase." >&2
+--ptype=<password-type> Displayed when prompting for passphrase.
+--s2k-count=<count> Small numbers make encryption and decryption faster." >&2
   exit 0
 fi
 
 OUT=
 BACKEND=gpg
 PTYPE=bash-script
+S2K_COUNT_FLAG=
 while test $# != 0; do
   if test "${1#--out=}" != "$1"; then
     OUT="${1#*=}"
@@ -38,6 +40,8 @@ while test $# != 0; do
   elif test "${1#--backend=}" != "$1"; then
     BACKEND="${1#*=}"
     test "$BACKEND" = gpg || test "$BACKEND" = openssl || die "unknown --backend=$BACKEND"
+  elif test "${1#--s2k-count=}" != "$1"; then
+    S2K_COUNT_FLAG="--s2k-count=${1#*=}"
   elif test "$1" = --; then
     shift
     break
@@ -118,7 +122,7 @@ PP=
 read PP <"$PF"
 test "$PP" || die "empty or missing passphrase in file: $PF"
 if test "$BACKEND" = gpg; then
-  PE="$(command gpg -c -q -a --batch --force-mdc -z 9 --passphrase-file <(echo -n "$PP") <<<"$D.")"
+  PE="$(command gpg -c -q -a --batch --force-mdc -z 9 $S2K_COUNT_FLAG --passphrase-file <(echo -n "$PP") <<<"$D.")"
   test "$?" = 0 || die 'gpg -c on passphrase failed'
   test "$PE" || die 'gpg -c on passphrase returned empty output'
   test "${PE#-----BEGIN PGP MESSAGE-----

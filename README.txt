@@ -55,6 +55,11 @@ How secure are scripts encrypted by encrypt_script.sh?
   or more bytes in the decrypted stream may get ruined.) --backend=gpg does
   provide integrity protection.
 
+Why is both encryption and decryption slow with --backend=gpg and newer GPG
+(e.g. gpg-2.2.2): key derivation is slow. To make it faster and less secure
+(i.e. more vulnerable to dictionary attacks), specify encrypt_script.bash
+--s2k-count=... with a small number: the smaller the faster.
+
 Encrypted scripts are not binary-safe. They are safe if the script to be
 encrypted doesn't contain the 0 byte (ASCII NUL). Bash ignores this byte in
 some context such as here-documents (<<'END'). Zsh doesn't ignore it.
