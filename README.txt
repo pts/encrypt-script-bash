@@ -3,7 +3,8 @@ encrypt_script.bash: passphrase-based encryption of Bash shell scripts
 encrypt_script.bash encrypts a Bash or Zsh shell script with one or more
 passphrases, creating a self-decrypting Bash or Zsh shell script, which asks
 for the passphrase, and if it matches any of the passphrases used for
-encryption, then decrypts and executes the original script.
+encryption, then decrypts (using gpg(1) or openssl(1)) and executes the
+original script.
 
 Example usage for creating an encrypted script:
 
@@ -18,6 +19,11 @@ Example usage for creating an encrypted script:
   enter bash-script passphrase:
   hi!
   ...
+
+If you can't afford any of gpg(1) or openssl(1) tp be installed on the
+computer running the encrypted script, but you have Perl there, you may be
+interested in https://github.com/pts/encrypt_script instead. Please note that
+the crypto there is weak, e.g. it uses the RC4 cipher.
 
 encrypt_script.bash and the encrypted scripts it creates use the gpg(1) (or
 openssl(1) with -aes-256-cbc if --backend=openssl is specified) command-line

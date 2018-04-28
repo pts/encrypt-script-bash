@@ -6,6 +6,10 @@
 # Tested and works on Bash and Zsh. Needs /dev/tty (Linux has it.)
 # TODO(pts): Make it work on macOS. Does it have /dev/tty?
 #
+# TODO(pts): Add --backend=perl with some weaker cipher such as RC4,
+# similarly to http://github.com/pts/encrypt_script and a custom weak key
+# derivation scheme, or a pure Perl implementation of TweetNaCl.
+#
 
 function die() {
   echo "fatal: $*" >&2
