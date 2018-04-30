@@ -79,6 +79,7 @@ some context such as here-documents (<<'END'). Zsh doesn't ignore it.
 gpg version compatibility:
 
 * gpg-1.4.10 (2008): OK
+* gpg-1.4.16 (2013): OK
 * gpg-2.2.2 (2017): OK
 
 openssl version compatibility:

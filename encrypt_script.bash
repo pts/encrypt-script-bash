@@ -62,12 +62,17 @@ test "$OUT" || die 'missing --out=...'
 test $# = 0 && die 'missing <passphrase-file>'
 
 if test "$BACKEND" = gpg; then
+  # This is to counter use-agent in ~/.gnupg/gpg/gpg.conf . It still displays
+  # a warning in gpg-1.4.16, but it at least makes it work.
+  #
+  # TODO(pts): Use --no-use-agent conditionally to hide the warning.
+  unset GPG_AGENT_INFO
   # This may display a migrating... ~/.gnupg message. It's hard ot disable.
   D=$(gpg -d -q --batch --passphrase a <<<'-----BEGIN PGP MESSAGE-----
 
 jA0EAwMC+Gv+j4hMGX5g0joB7u8WLHTg0eLf3Rl1IvUkIXvsYGIDLvdN3M6m0sBgvXLFHby5D+CjaTtfW7t8OdQT+ljyJgQSVjyB=6nE9
 -----END PGP MESSAGE-----')
-  test "$D" = unencumbered || die 'gpg -d -q --batch --passphrase a is broken'
+  test "$D" = unencumbered || die 'gpg -d --passphrase a is broken'
 else
   D="$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==')"
   test "$D" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'
@@ -96,7 +101,8 @@ function die() {
 }"
 # TODO(pts): Disable installation.
 if test "$BACKEND" = gpg; then
-echo "if ! type -p gpg 2>/dev/null >&2; then
+echo "unset GPG_AGENT_INFO
+if ! type -p gpg 2>/dev/null >&2; then
   echo 'info: gpg not found for $PTYPE, installing' >&2
   command sudo apt-get install gnupg
   type -p gpg 2>/dev/null >&2 || die 'gpg: command not found'
@@ -112,11 +118,23 @@ fi
 echo "unset PP EP D D1 C"
 if test "$BACKEND" = gpg; then
   # This may display a migrating... ~/.gnupg message. It's hard ot disable.
-  echo "D=\$(gpg -d -q --batch --passphrase a <<<'-----BEGIN PGP MESSAGE-----
-
-jA0EAwMC+Gv+j4hMGX5g0joB7u8WLHTg0eLf3Rl1IvUkIXvsYGIDLvdN3M6m0sBgvXLFHby5D+CjaTtfW7t8OdQT+ljyJgQSVjyB=6nE9
------END PGP MESSAGE-----')
-test \"\$D\" = unencumbered || die 'gpg -d -q --batch --passphrase a is broken'"
+  echo "unset GPGNUA
+builtin setopt shwordsplit 2>/dev/null
+PP='-----BEGIN PGP MESSAGE-----
+ 
+ jA0EAwMC+Gv+j4hMGX5g0joB7u8WLHTg0eLf3Rl1IvUkIXvsYGIDLvdN3M6m0sBgvXLFHby5D+CjaTtfW7t8OdQT+ljyJgQSVjyB=6nE9
+------END PGP MESSAGE-----'
+D=\"\$(GPG_AGENT_INFO= command gpg -d -q --batch --passphrase a 2>&1 <<<\"\$PP\")\"
+GPGNUA='gpg -q --batch'
+if test \"\${D##*gpg-agent is not available*
+unencumbered}\" = \"\"; then
+  GPGNUA='gpg --no-use-agent -q --batch'
+  D=\"\$(command \$GPGNUA -d --passphrase a <<<\"\$PP\")\"
+fi
+if test \"\$D\" != unencumbered; then
+  echo \"\$D\" >&2
+  die 'gpg -d --passphrase a is broken'
+fi"
 else
   echo "D=\"\$(command openssl enc -a -d -aes-256-cbc -k a -nosalt -md sha1 <<<'M1/LvAYWRMW2kWce+uoEBQ==' 2>/dev/null)\"
 test \"\$D\" = unencumbered || die 'openssl enc -a -d -aes-256-cbc -md sha1 is broken'"
@@ -132,7 +150,7 @@ PP=
 read PP <"$PF"
 test "$PP" || die "empty or missing passphrase in file: $PF"
 if test "$BACKEND" = gpg; then
-  PE="$(command gpg -c -q -a --batch --force-mdc -z 9 $S2K_COUNT_FLAG --passphrase-file <(echo -n "$PP") <<<"$D.")"
+  PE="$(command gpg -c -a -q --batch --force-mdc -z 9 $S2K_COUNT_FLAG --passphrase-file <(echo -n "$PP") <<<"$D.")"
   test "$?" = 0 || die 'gpg -c on passphrase failed'
   test "$PE" || die 'gpg -c on passphrase returned empty output'
   test "${PE#-----BEGIN PGP MESSAGE-----
@@ -159,12 +177,12 @@ fi
 done
 if test "$BACKEND" = gpg; then
   echo "; do
-  read D < <(gpg -d -q --batch --passphrase-file <(echo -n \"\$PP\") 2>/dev/null <<<\"-----BEGIN PGP MESSAGE-----
+  read D < <(command \$GPGNUA -d --passphrase-file <(echo -n \"\$PP\") 2>/dev/null <<<\"-----BEGIN PGP MESSAGE-----
 
 \$EP
 -----END PGP MESSAGE-----\")
   test \"\$?\" = 0 && test \"\${D%.}\" != \"\$D\" && D=\"\${D%.}\" && break"
-  DECRYPT_CMD="gpg -d -q --batch --passphrase-file"
+  DECRYPT_CMD="command \$GPGNUA -d --passphrase-file"
 else
   echo "; do
   read D < <(command openssl enc -a -d -aes-256-cbc -md sha1 -kfile <(echo -n \"\$PP\") 2>/dev/null <<<\"\${EP// /
@@ -175,14 +193,14 @@ fi
 echo "  D=
 done
 test \"\$D\" || die 'incorrect $PTYPE passphrase'
-C=\"unset C;\$(command $DECRYPT_CMD <(echo -n \"\$D\") <<'HEREND'"
+C=\"unset C;\$($DECRYPT_CMD <(echo -n \"\$D\") <<'HEREND'"
 function script_source() {
   read LINE; test "${LINE#\#!}" = "$LINE" || LINE=; echo "$LINE"; command cat
 }
 if test "$BACKEND" = gpg; then
 # Also `-z 0' can be used to disable compression.
-DE="$(script_source | command gpg -c -q -a --batch --force-mdc --s2k-mode 1 --passphrase-file <(echo -n "$D"))"
-test "$?" = 0 || die "gpg -c on script failed"
+DE="$(script_source | command gpg -c -a -q --batch --force-mdc --s2k-mode 1 --passphrase-file <(echo -n "$D"))"
+test "$?" = 0 || die "gpg -c -a on script failed"
 test "${DE#-----BEGIN PGP MESSAGE-----
 }" = "$DE" && die 'gpg -c -a on script returned output without ASCII armor at the beginning'
 test "${DE#*
