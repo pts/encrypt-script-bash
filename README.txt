@@ -20,12 +20,12 @@ Example usage for creating an encrypted script:
   hi!
   ...
 
-If you can't afford any of gpg(1) or openssl(1) tp be installed on the
+If you can't afford any of gpg(1) or openssl(1) to be installed on the
 computer running the encrypted script, but you have Perl there, you may be
 interested in https://github.com/pts/encrypt_script instead. Please note that
-the crypto there is weak, e.g. it uses the RC4 cipher.
+the crypto there is weak, because it uses the RC4 cipher.
 
-encrypt_script.bash and the encrypted scripts it creates use the gpg(1) (or
+encrypt_script.bash and the encrypted scripts use the gpg(1) (or
 openssl(1) with -aes-256-cbc if --backend=openssl is specified) command-line
 tool. They also use Bash (/bin/bash, also works with Zsh) and /dev/tty .
 There is no other dependency.
@@ -39,17 +39,17 @@ argv or to the environment (so users running ps(1) can't inspect it).
 encrypt_script.bash uses gpg(1) (or openssl(1)) with a random salt, thus the
 output file will be different even after rerunning for the same input.
 
-The encrypted scripts need Bash (rather than e.g. Busybox sh or Dash) to
-run, because they use the <<< and <(...) redirections, which are not
+The encrypted scripts need Bash or Zsh (rather than e.g. Busybox sh or Dash)
+to run, because they use the <<< and <(...) redirections, which are not
 supported by Busybox sh or Dash. Bash versions tested and found working:
 4.1.5 (2009) ... 4.4.19 (2018). The encrypted scripts also work with Zsh,
 tested and found working: 4.3.10 (2009) ... 5.4.2 (2018).
 
-Standard files (stdin, stdout and stderr), environment (except for a few
-variables used for encryption) and arguments (argv, e.g. $1) are passed to
-the script after decryption. The script filename and line number are not
-passed around properly, the file name will be `eval', and line the line
-number will have about 48 added to it.
+Standard file descriptors (stdin, stdout and stderr), environment (except
+for a few variables used for encryption) and arguments (argv, e.g. $1) are
+passed to the script after decryption. The script filename and line number
+are not passed around properly, the file name will be `eval', and line the
+line number will have about 48 added to it.
 
 How secure are scripts encrypted by encrypt_script.sh?
 
@@ -59,6 +59,7 @@ How secure are scripts encrypted by encrypt_script.sh?
   /proc (but root can create a memory dump to inspect it).
 * good: Crypto is as secure as the default gpg settings where
   encrypt_script.bash is run (usually good).
+* good: Integrity protection (gpg --force-mdc) is used by default.
 * bad for --backend=openssl: The key derivation scheme is weak, a dictionary
   attack is much faster than with the default --backend=gpg .
 * bad for --backend=openssl: There is no integrity protection, so the middle
@@ -85,7 +86,7 @@ gpg version compatibility:
 openssl version compatibility:
 
 * OpenSSL 0.9.8k 25 Mar 2009: OK (default is -md md5)
-* OpenSSL 1.0.2o  27 Mar 2018: OK (default is -md md5)
+* OpenSSL 1.0.2o 27 Mar 2018: OK (default is -md md5)
 * OpenSSL 1.1.0g  2 Nov 2017: OK (default is not -md sha256)
 
 __END__
